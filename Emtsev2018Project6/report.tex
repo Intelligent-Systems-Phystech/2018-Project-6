@@ -1,0 +1,44 @@
+% \documentclass[twoside,9pt]{extarticle}
+    \documentclass[12pt,twoside]{article}
+        \usepackage{jmlda}
+        
+        \usepackage{listings}
+        \usepackage{caption}
+        %\DeclareCaptionFont{white}{\color{white}}
+        %\DeclareCaptionFormat{listing}{\colorbox{gray}{\parbox{\textwidth}{#1#2#3}}}
+        %\captionsetup[lstlisting]{format=listing,labelfont=white,textfont=white}
+        %%\NOREVIEWERNOTES
+        
+        % \newenvironment{coderes}%
+        %     {\medskip\tabcolsep=0pt\begin{tabular}{>{\small}l@{\quad}|@{\quad}l}}%
+        %     {\end{tabular}\medskip}
+        
+        \begin{document}
+        \English
+        
+        \title{On conformational changes of proteins using collective motions in torsion angle space and L1 regularization}
+        \author{Ryabinina~R.\,B., Emtsev~D.\,I.}
+            [Ryabinina~R.\,B.$^1$, 
+            Emtsev~D.\,I.$^2$ ]
+        \email{$^1$ ryabinina.rb@phystech.edu 
+               $^2$ daniil.emcev.ru@yandex.ru 
+               }
+        \organization{$^{1\,2}$MIPT}
+        
+        \abstract{
+        \titleEng{Abstract}
+        \abstractEng{
+            Torsion angles are the most natural degrees of freedom
+             for describing motions of polymers, such as proteins.
+              This is because bond lengths and bond angles are heavily
+            constrained by covalent forces. Thus, multiple attempts
+            have been done to describe protein dynamics in the torsion angle space...
+               The goal of the current project is to study if a sparse subset of collective coordinates in the torsion subspace can describe functional conformational changes in proteins. 
+               This will require a solution of a ridge regression problem with a L1 regularization constraint. The starting point will be the LASSO formulation...
+            }
+        }
+        
+        \maketitle
+        
+        
+        \end{document}
