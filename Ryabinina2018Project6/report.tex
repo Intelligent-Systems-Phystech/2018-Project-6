@@ -1,12 +1,11 @@
 % \documentclass[twoside,9pt]{extarticle}
     \documentclass[12pt,twoside]{article}
         \usepackage{jmlda}
-        
+   
         \usepackage{color}% Include colors for document elements
 \newcommand\red[1]{{\color{red}#1}}
 \newcommand\green[1]{{\color{green}#1}}
 \newcommand\blue[1]{{\color{blue}#1}}
-
         \usepackage{listings}
         \usepackage{caption}
         %\DeclareCaptionFont{white}{\color{white}}
@@ -87,12 +86,25 @@ $$\min_{\Delta \phi} \; (\Delta \phi, J^{\top}MJ \Delta \phi)-2(\Delta \phi, J^{
 That has this form due to $J^{\top}M\Delta r = J^{\top}M J \Delta \phi$ reformation. This method is inapplicable with correlated explanatory variables which is the components of the Jacobian matrix because it tends to lead to overfitting problems. Thus, we are considering $L_1$ regularization approach allowing get rid of valueless features. 
  
  \section{Overview of $L_1$ regularization methods of obtaining conformational changes }
- 
+ There are a lot of contemporary methods to work with $L_1$ regularization. We look through several of them and present our method with best results
  %\subsection{\small{Data sets}}
  %\red{[please, provide 2 test sets. And let's start with the structural transitions (a smaller set)!]} 
  %We use a test set of 30 non-redundant monometric proteins which shows the structural transitions.
+ \subsection{\small{Implemented method}}
+ Least absolute shrinkage and selection operator with coordinate descent 
+ $$\frac{1}{2n}\|\Delta r-J\Delta\phi\|_2^2+\alpha \|\Delta\phi\|_1$$
+ 
+ where n - number of samples, $\Delta r$ - vector of displacements in protein structure, $\Delta\phi$ - torsional angle of rotated protein, $\alpha$ - optimization hyperparameter
+ 
+  \begin{figure}[h]
+\centering
+\includegraphics[width=0.8\textwidth]{lasso.pdf}
+\caption{Estimated coefficients at coordinate descent in Lasso }
+\label{fig:hist2}
+\end{figure} 
+
  \subsection{\small{Least absolute shrinkage and selection operator}}
- Firstly we work with simple least absolute shrinkage and selection operator which is more preferable comparing to ridge, because instead of just shrinking coefficients in ridge regression, we reduce the dimension of $\Delta\phi$, selecting best-working features. 
+ Firstly we consider simple least absolute shrinkage and selection operator which is more preferable comparing to ridge, because instead of just shrinking coefficients in ridge regression, we reduce the dimension of $\Delta\phi$, selecting best-working features. 
  We consider the problem as 
  
 $$\min_{\Delta \phi} \; (\Delta \phi, J^{\top}MJ \Delta \phi)-2(\Delta \phi, J^{\top}M\Delta r)$$
@@ -104,16 +116,113 @@ $$ \min_{\Delta \phi^+,\; \Delta \phi^-} \; \frac{1}{2}(\Delta\phi_i^+ - \Delta\
 $$ s.t. \;\Delta \phi^+ + \Delta \phi^- \leqslant s$$
 $$\Delta \phi^{+,-}\geqslant 0$$
 
+It can be  rewritten in the matrix form as: 
+\begin{gather}
+\min_{\Delta \phi^+,\; \Delta \phi^-} \; \frac{1}{2}\begin{bmatrix} \Delta\phi_i^+ & \Delta\phi_i^- \end{bmatrix} \begin{bmatrix} Q & -Q \\ -Q 
+& Q\end{bmatrix}\begin{bmatrix} \Delta\phi_i^+ \\ \Delta\phi_i^- \end{bmatrix}+\begin{bmatrix} c^{\top} & -c^{\top}\end{bmatrix}\begin{bmatrix} \Delta\phi_i^+ \\ \Delta\phi_i^- \end{bmatrix}
+\end{gather}
+
+\begin{gather}
+\begin{bmatrix} I_{p}& I_{p} \\ -I_{2p} &\end{bmatrix}\begin{bmatrix} \Delta\phi_i^+ \\ \Delta\phi_i^- \end{bmatrix}\leq \begin{bmatrix} s_{p} \\ 0_{2p} \end{bmatrix}
+\end{gather}
+
+Where $I_{p}$ is the p-dimensional unit matrix, $s_{p}$ - p-dimensional vector, consisting only of the value s, and $0_{2p}$ is a $2p$-dimensional zero vector
+
  \subsection{\small{Elastic net regularization}}
 Further, we analyze elastic-net regression in the application to finding conformational changes.  Lets consider the next formulation with  $\alpha > 0$ and discuss disadvantages
 
 $$\min_{\Delta \phi} \; (\Delta \phi, J^{\top}MJ \Delta \phi)-2(\Delta \phi, J^{\top}M\Delta r) + \alpha(\Delta \phi, \Delta \phi) + (1-\alpha)\sum\limits_{j=1}^{p} |\Delta\phi_j|$$
 The elastic net model is able to select groups of variables when they are highly correlated. It doesn't have the problem of selecting more than n predictors when $p \gg n$, but LASSO saturates in this situation. When there are highly correlated predictors, the LASSO tends to just pick one predictor out of the group. These disadvantages of LASSO could be overcome by the elastic net. But in our problem, it is not necessary, because we have $p \ll n$ and the real disadvantage is the computational cost. That will be due to the inevitable cross-validation of the relative weight of $L_1$ vs.$L_2$ penalty, $\alpha$, and that increases the computational cost by the number of values in the $\alpha$ grid. Another drawback, which can be also an advantage, is the flexibility of the estimator. Increased probability of overfitting comes with greater flexibility. It may be that the optimal $\alpha$ for the population and for the given sample size is 0, turning the elastic net into the lasso, but it possible to choose a different value due to chance\cite{RePEc:bla:jorssb:v:67:y:2005:i:5:p:768-768}. 
 
+
  \subsection{\small{Least angle regression }}
 In addition, we review least angle regression as it produces a full piecewise linear solution path, which is simplifies cross-validation. The fact is that in the following there will be discussed the choice of the regularization parameter for our first model. Despite of this point the method has considerable disadvantages. With any amount of noise in the dependent variable and with high-dimensional multicollinear independent variables, there is no reason to believe that the selected variables will have a high probability of being the actual underlying causal variables. However, since LARS relies on an iterative update of residuals, it appears to be particularly sensitive to the effects of noise\cite{efron2004least}.  Furthermore, it is in our case that we have a lot of this, so we do not use LARS as the main strategy and as the solution of finding regularization parameter. 
 
- \section{Penalty parameter}
+ \section{Method}
+ We use this formulation of Lasso from the  scikit-learn v0.20.1 library.
+ The method that showed best results and most adequate answer is about coordinate decent. The formulation as usual like Lasso. We use coordinate descent. 
+ $$\frac{1}{2n}\|\Delta r-J\Delta\phi\|_2^2+\alpha \|\Delta\phi\|_1$$
+
+We split our dataset into 10 parts (10-fold cross validation)
+We also used grid search automatically tuning hyperparameters on a parameter grid to choose the parameters with maximum  cross-validation score. We set initially grid with $\alpha\in[10^{-5}, 10^{-3}]$ with 30 values.   It works considerably slower then just Lasso using cross validation.
+
+
+
+  
+  \section{Implementation}
+  
+We use LassoCV and GreedSearchCV models for predicting $\Delta r$. $\Delta r$ is our target. 
+ We take 30 pairs of initial dataset and for each pair calculate RMSD (initial, final) (it is given in existed code)  and RMSD(initial, predicted). Then we plot it on the one table to see correlation between two RMSD. The lower RMSD of prediced conformation and final conformation the more accurate the prediction so there should be strong correlation between this RMSD and the RMSD between the initial and final conformation. The larger the conformation change, the worse the reconstructed conformation. We tried to catch the pattern of correlation plotting results in two dimensional space ($RMSD_1$, $RMSD_2$) and checking their location relatively bisectrix. Also we estimated correlation of RMSD using linear approximation of data. We compared results of Lasso with cross validation, Lasso with grid-search cross-validation, Elastic net with cross-validation and Ridge regression.
+ 
+
+\section{Results}
+
+Finally, we analyze the properties of the torsional conformational changes obtained with Lasso based on grid-search and cross-validation showed reasonable results. 
+We summarize the average RMSD between the reconstructed conformations and the target conformations for the six methods and showed, that least absolute shrinkage and selection operator model with cross-validation can work as good as  Ridge regression. 
+\begin{center}
+
+\begin{table}[h]
+\begin{tabular}{|l|l|l|l|l|l|}
+ \hline
+LassoCV & EnCV & L=0  & Ridge M & Ridge С & LassoCVGS \\ \hline
+2.39    & 2.17  & 6.79 & 1.71    & 1.53    & 1.74          \\ \hline
+\end{tabular}
+\end{table}
+\end{center}
+Two models: Grid search Lasso and Ridge regression type M yield accurate reconstructed structures, whose RMSD is on the average 1.7, i.e. the reconstructed conformations are approximately half the way between the initial and final conformational. As a result, sparse subset of collective coordinates in the torsion subspace can describe functional conformational changes in proteins.
+
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{Grid-search.pdf}
+\caption{Correlation of RMSD in Grid search Lasso}
+\label{fig:hist2}
+\end{figure} 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{LassoCV.pdf}
+\caption{Correlation of RMSD in Lasso with cross validation}
+\label{fig:hist2}
+\end{figure} 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{EncCV.pdf}
+\caption{Correlation of RMSD in Elasticnet with cross validation}
+\label{fig:hist2}
+\end{figure} 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{L_0.pdf}
+\caption{Correlation of RMSD in L=0 regression}
+\label{fig:hist2}
+\end{figure} 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{RidgeC.pdf}
+\caption{Correlation of RMSD in Ridge}
+\label{fig:hist2}
+\end{figure} 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.5\textwidth]{RidgeM.pdf}
+\caption{Correlation of RMSD in RidgeM}
+\label{fig:hist2}
+\end{figure} 
+
+\begin{center}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{Win.pdf}
+\caption{Comparison of correlations of RMSD in all methods (using linear approximation). \\Root mean square deviation between the conformation modelled applying the torsional
+differences on top of the initial conformation and the final conformation as a function of the RMSD between the
+initial and the final conformation for six alternative methods for obtaining the torsional differences. }
+\label{fig:hist2}
+\end{figure} 
+
+\end{center}
+\clearpage
  \bibliographystyle{ieeetr}
  \bibliography{references}
         \end{document}
